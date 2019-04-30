@@ -58,6 +58,31 @@ int Schrage(Process *Process_Array, int n);
  */
 int SchrageWithParity(Process *Process_Array, int n);
 
+// ------------------------- Algorytm Carlier  ------------------------------------------------------------------------------------------------------------------------
+// Algorytm zaimplementowany przy pomocy pseudokodu pochodzacego ze strony:
+// http://dominik.zelazny.staff.iiar.pwr.wroc.pl/materialy/Algorytm_Carlier.pdf
+/* Dane:
+ * N - liczba zadań
+ * R[i] - termin dostępności i-tego zadania
+ * P[i] - czas wykonania i-tego zadania
+ * Q[i] - czas dostarczenia i-tego zadania
+ * UB – górne oszacowanie wartości funkcji celu (wartości funkcji celu dla najlepszego dotychczas rozwiązania
+ *
+ * Szukane:
+ * Pi* - optymalna permutacja wykonania zadań na maszynie
+ *
+ * Struktury pomocnicze:
+ * Pi - permutacja wykonania zadań na maszynie
+ * U – wartość funkcji celu
+ * LB – dolne oszacowanie wartości funkcji celu
+ */
+int Carlier(Process *Process_Array, int n, int UB);
+
+/* Funkcje pomocnicze */
+int find_b();
+int find_a();
+int find_c();
+
 // ------------------------- Implementacja kolejki priorytetowej ------------------------------------------------------------------------------------------------------
 /* Źródło: http://mariusz.makuchowski.staff.iiar.pwr.wroc.pl/download/courses/sterowanie.procesami.dyskretnymi/lab.instrukcje/lab04.schrage/heap.demo.v1.5/demoheap.exe
  * Autor: Dr inż. Mariusz Makuchowski
@@ -531,6 +556,107 @@ int SchrageWithParity(Process *Process_Array, int n) {
     cout << endl << "Cmax wyznaczone za pomoca Schrage z podziałem: " << Cmax << endl;
     
     return Cmax;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+int find_b() {
+    
+    // ?
+    
+    return 0;
+}
+
+int find_a() {
+    
+    // ?
+    
+    return 0;
+}
+
+int find_c() {
+    
+    // ?
+    
+    return 0;
+}
+
+int Carlier(Process *Process_Array, int n, int UB) {
+    
+    //int k = 1;                                      // <- pozycja w permutacji
+    //int Cmax = 0;                                   // <- maksymalny z terminów dostarczenia zadań
+    Process *PI = Process_Array;                    // <- permutacje zadań
+    
+    int U = 0;              // <- wartość funkcji celu
+    int LB = 0;             // <- dolne oszacowanie
+    
+    int a = 0;              // <- numer pierwszego zadania w bloku K
+    int b = 0;              // <- numer ostatniego zadania w bloku K
+    int c = 0;              // <- numer zadania przeszkadzajacęgo
+    
+    int r_prim = 0;         // <- nowe r dla zadania c
+    int p_prim = 0;         // <- suma p
+    int q_prim = 0;         // <- nowe q dla zadania c
+    
+    int r_ref  = 0;         // <- zapamiętane r zadania c
+    int q_ref  = 0;         // <- zapamiętane q zadania c
+    int nr_ref = 0;         // <- zapamiętany numer zadania c
+    
+    // krok 1: następuje wyznaczenie permutacji wykonywania zadań algorytmem Schrage
+    U = Schrage(Process_Array, n);
+    
+    // krok 2: uaktualniane jest najlepsze do tej pory znalezione rozwiązanie
+    if(U < UB) {
+        
+        UB = U;
+        PI = Process_Array;
+    }
+    
+    // krok 3: wyznaczany jest blok (a,b) oraz pozycja zadania interferencyjnego
+    b = find_b();
+    a = find_a();
+    c = find_c();
+    
+    // krok 4: jeżeli tego typu zadanie nie istnieje (alg. Shrage wygenerował rozwiązanie optymalne), następuje powrót z procedury
+    if(c == 0) {
+        
+        return U;
+    }
+    
+    // krok 5: wyznaczany jest najmniejszy z terminów dostępności oraz największy z terminów dostarczenia zadań stojących na pozycjach
+    // od c+1 do b, dodatkowo wyznaczana jest suma czasów wykonania zadań
+    for (int i = c + 1; i <= b; i++) {
+        
+        r_prim = min(r_prim, PI[i].r);
+        q_prim = min(q_prim, PI[i].q);
+        p_prim += PI[i].p;
+    }
+    
+    // krok 6: modyfikowany jest termin dost pno ci zadania referencyjnego (wymuszane jest aby zadanie referencyjne wykonywane było
+    // za wszystkimi zadaniami na tych pozycjach)
+    
+    // krok 7: wyznaczane jest dolne ograniczenie dla wszystkich permutacji spełniających to wymaganie
+    LB = SchrageWithParity(Process_Array, n);
+    
+    // krok 8 i 9: rekurencyjnie wywoływane jest rozwiązanie nowego problemu
+    if(LB < UB) {
+        
+        Carlier(Process_Array, n, UB);
+    }
+    
+    // krok 10: po powrocie odtwarzany jest termin dostępności rozwiązania referencyjnego
+    
+    // krok 11-15: wykonywane są analogiczne czynności, przy czym modyfikowany jest termin dostarczenia zadania referencyjnego
+    // (wymuszane jest aby zadanie referencyjne wykonywane było przed wszystkimi zadaniami na pozycjach od c+1 do b)
+    
+    LB = SchrageWithParity(Process_Array, n);
+    
+    if(LB < UB) {
+        
+        Carlier(Process_Array, n, UB);
+    }
+    
+    return U;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
