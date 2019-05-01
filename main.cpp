@@ -9,7 +9,9 @@ using namespace std;
 
 class Process {
 public:
-    int r, p, q, number;
+    int r, p, q;    // <- wartości r,p,q
+    int number;     // <- numer zadania
+    int c;          // <- czas dostarczenia zadania
     
     void Print() {
         cout << endl << "Numer zadania: " << number << endl <<
@@ -51,7 +53,7 @@ int Schrage(Process *Process_Array, int n);
  *
  * Struktury pomocnicze:
  * t – chwila czasowa,
- * k – pozycja w permutacji π
+ * k – pozycja w permutacji Pi
  * l - aktualne wykonywane zadanie
  * N – zbiór zadań nieuszeregowanych
  * G – zbiór zadań gotowych do realizacji
@@ -79,9 +81,9 @@ int SchrageWithParity(Process *Process_Array, int n);
 int Carlier(Process *Process_Array, int n, int UB);
 
 /* Funkcje pomocnicze */
-int find_b();
-int find_a();
-int find_c();
+int find_b(Process *Process_Array, int n, int C_max);
+int find_a(Process *Process_Array, int n, int C_max, int b);
+int find_c(Process *Process_Array, int n, int b, int a);
 
 // ------------------------- Implementacja kolejki priorytetowej ------------------------------------------------------------------------------------------------------
 /* Źródło: http://mariusz.makuchowski.staff.iiar.pwr.wroc.pl/download/courses/sterowanie.procesami.dyskretnymi/lab.instrukcje/lab04.schrage/heap.demo.v1.5/demoheap.exe
@@ -382,7 +384,7 @@ int main(void) {
     
     ifstream data("carl.data.txt");
     
-    while( s != "data.008:" ) {
+    while( s != "data.000:" ) {
         data >> s;
     }
     
@@ -390,7 +392,7 @@ int main(void) {
     
     Process *Process_Array = new Process[N];
     
-    cout << "---- Wczytane zadania -----" << endl;
+    //cout << "---- Wczytane zadania -----" << endl;
     for(int i = 1; i <= N; i++) {
         
         Process temp_process;
@@ -399,11 +401,10 @@ int main(void) {
         data >> temp_process.r >> temp_process.p >> temp_process.q;
         
         Process_Array[i] = temp_process;
-        Process_Array[i].Print();
+        //Process_Array[i].Print();
     }
     
-    Schrage(Process_Array,N);
-    SchrageWithParity(Process_Array,N);
+    Carlier(Process_Array, N, INT_MAX);
     
     //system("pause");
     
@@ -460,16 +461,20 @@ int Schrage(Process *Process_Array, int n) {
             
             Cmax = max(Cmax, t + PI[k].q);
             
+            PI[k].c = t; // wyliczenie zmiennej potrzebnej w algorytmie Carliera
+            
             k++;
         }
     }
     
+    /*
     cout << endl << "------ Wyznaczona permutacja PI Schrage bez podziału  ---------" << endl;
     for (int i = 1; i <= n; i++) {
         PI[i].Print();
     }
     
     cout << endl << "Cmax wyznaczone za pomoca Schrage bez podziału: " << Cmax << endl;
+    */
     
     return Cmax;
 }
@@ -547,6 +552,7 @@ int SchrageWithParity(Process *Process_Array, int n) {
         }
     }
     
+    /*
     cout << endl << "------ Wyznaczona permutacja PI Schrage z podziałem ---------" << endl;
     
     for (int i = 1; i <= n; i++) {
@@ -554,53 +560,91 @@ int SchrageWithParity(Process *Process_Array, int n) {
     }
     
     cout << endl << "Cmax wyznaczone za pomoca Schrage z podziałem: " << Cmax << endl;
-    
+    */
     return Cmax;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-int find_b() {
+int find_b(Process *Process_Array, int n, int C_max) {
     
-    // ?
+    int b = 0;
     
-    return 0;
+    // szukamy najwiekszego b, dlatego od prawej
+    for(int j = n; j >= 1; j--) {
+        
+        if( C_max == Process_Array[j].c + Process_Array[j].q ) {
+            
+            b = j;
+            return b;
+        }
+    }
+    
+    return -1; // b nie istnieje
 }
 
-int find_a() {
+int find_a(Process *Process_Array, int n, int C_max, int b) {
     
-    // ?
+    int a = 0;
+    int sum = 0;
     
-    return 0;
+    // szukamy najmniejszego a, dlatego od lewej
+    for (int j = 1; j <= n; j++) {
+        
+        sum = 0;
+        
+        for (int s = j; s <= b; s++) {
+            
+            sum += Process_Array[s].p;
+        }
+        
+        if ( C_max == (Process_Array[j].r + sum + Process_Array[b].q) ) {
+            
+            a = j;
+            return a;
+        }
+    }
+    
+    return -1; // a nie istnieje
 }
 
-int find_c() {
+int find_c(Process *Process_Array, int n, int b, int a) {
     
-    // ?
+    int c = 0;
     
-    return 0;
+    // szukamy największego c, dlatego od prawej
+    for (int j = b; j >= a; j--) {
+        
+        if ( Process_Array[j].q < Process_Array[b].q ) {
+            
+            c = j;
+            return c;
+        }
+    }
+    
+    return -1; // c nie istnieje
 }
 
 int Carlier(Process *Process_Array, int n, int UB) {
     
-    //int k = 1;                                      // <- pozycja w permutacji
-    //int Cmax = 0;                                   // <- maksymalny z terminów dostarczenia zadań
-    Process *PI = Process_Array;                    // <- permutacje zadań
+    static int iteration = 1;       // <- numer wywolania rekurencyjnego
     
-    int U = 0;              // <- wartość funkcji celu
-    int LB = 0;             // <- dolne oszacowanie
+    Process *PI = Process_Array;    // <- permutacje zadań
     
-    int a = 0;              // <- numer pierwszego zadania w bloku K
-    int b = 0;              // <- numer ostatniego zadania w bloku K
-    int c = 0;              // <- numer zadania przeszkadzajacęgo
+    static int U  = 0;                     // <- wartość funkcji celu
+    static int LB = 0;                     // <- dolne oszacowanie
     
-    int r_prim = 0;         // <- nowe r dla zadania c
-    int p_prim = 0;         // <- suma p
-    int q_prim = 0;         // <- nowe q dla zadania c
+    int a = 0;                      // <- numer pierwszego zadania w bloku K
+    int b = 0;                      // <- numer ostatniego zadania w bloku K
+    int c = 0;                      // <- numer zadania przeszkadzajacęgo
     
-    int r_ref  = 0;         // <- zapamiętane r zadania c
-    int q_ref  = 0;         // <- zapamiętane q zadania c
-    int nr_ref = 0;         // <- zapamiętany numer zadania c
+    int r_prim = INT_MAX;           // <- nowe r dla zadania c
+    int p_prim = 0;                 // <- suma p
+    int q_prim = INT_MAX;           // <- nowe q dla zadania c
+    
+    int r_ref  = 0;                 // <- zapamiętane r zadania c
+    int q_ref  = 0;                 // <- zapamiętane q zadania c
+    int nr_ref = 0;                 // <- zapamiętany numer zadania c
     
     // krok 1: następuje wyznaczenie permutacji wykonywania zadań algorytmem Schrage
     U = Schrage(Process_Array, n);
@@ -613,27 +657,32 @@ int Carlier(Process *Process_Array, int n, int UB) {
     }
     
     // krok 3: wyznaczany jest blok (a,b) oraz pozycja zadania interferencyjnego
-    b = find_b();
-    a = find_a();
-    c = find_c();
+    b = find_b(Process_Array, n, U);
+    a = find_a(Process_Array, n, U, b);
+    c = find_c(Process_Array, n, b, a);
     
     // krok 4: jeżeli tego typu zadanie nie istnieje (alg. Shrage wygenerował rozwiązanie optymalne), następuje powrót z procedury
-    if(c == 0) {
+    if(c == -1) {
         
         return U;
     }
     
     // krok 5: wyznaczany jest najmniejszy z terminów dostępności oraz największy z terminów dostarczenia zadań stojących na pozycjach
     // od c+1 do b, dodatkowo wyznaczana jest suma czasów wykonania zadań
-    for (int i = c + 1; i <= b; i++) {
+    for (int j = c + 1; j <= b; j++) {
         
-        r_prim = min(r_prim, PI[i].r);
-        q_prim = min(q_prim, PI[i].q);
-        p_prim += PI[i].p;
+        r_prim  = min(r_prim, Process_Array[j].r);
+        q_prim  = min(q_prim, Process_Array[j].q);
+        p_prim += Process_Array[j].p;
     }
     
-    // krok 6: modyfikowany jest termin dost pno ci zadania referencyjnego (wymuszane jest aby zadanie referencyjne wykonywane było
+    // krok 6: modyfikowany jest termin dostępności zadania referencyjnego (wymuszane jest aby zadanie referencyjne wykonywane było
     // za wszystkimi zadaniami na tych pozycjach)
+    Process_Array[c].r = max(Process_Array[c].r, r_prim + p_prim);
+    
+    // zapamietanie
+    nr_ref = Process_Array[c].number;
+    r_ref = Process_Array[c].r;
     
     // krok 7: wyznaczane jest dolne ograniczenie dla wszystkich permutacji spełniających to wymaganie
     LB = SchrageWithParity(Process_Array, n);
@@ -645,9 +694,21 @@ int Carlier(Process *Process_Array, int n, int UB) {
     }
     
     // krok 10: po powrocie odtwarzany jest termin dostępności rozwiązania referencyjnego
+    for (int j = 1; j <= n; j++) {
+        
+        if (nr_ref == Process_Array[j].number) {
+            
+            Process_Array[j].r = r_ref; // odtwórz r zadania c
+        }
+    }
     
     // krok 11-15: wykonywane są analogiczne czynności, przy czym modyfikowany jest termin dostarczenia zadania referencyjnego
     // (wymuszane jest aby zadanie referencyjne wykonywane było przed wszystkimi zadaniami na pozycjach od c+1 do b)
+    Process_Array[c].q = max(Process_Array[c].q, q_prim + p_prim);
+    
+    // zapamietanie
+    nr_ref = Process_Array[c].number;
+    q_ref = Process_Array[c].q;
     
     LB = SchrageWithParity(Process_Array, n);
     
@@ -656,8 +717,37 @@ int Carlier(Process *Process_Array, int n, int UB) {
         Carlier(Process_Array, n, UB);
     }
     
+    for (int j = 1; j <= n; j++) {
+        
+        // jeżeli numer zadania zgadza się z zapamiętanym
+        if( nr_ref == Process_Array[j].number ) {
+            
+             Process_Array[j].q = q_ref; // odtwórz q zadania c
+        }
+    }
+    
+    cout << iteration << " " << " U: " << U << endl;
+    cout << iteration << " " << " UL: " << LB << endl;
+    cout << iteration << " " << " UB: " << UB << endl;
+    cout << iteration << " " << " a: " << a << endl;
+    cout << iteration << " " << " b: " << b << endl;
+    cout << iteration << " " << " c: " << c << endl;
+    
+    if(iteration == 1) {
+        
+        cout << endl << "------ Wyznaczona permutacja PI Carlier ---------" << endl;
+        
+        for (int i = 1; i <= n; i++) {
+            PI[i].Print();
+        }
+        
+        cout << endl << "Długość uszeregowania wyznaczona algorytmem Carliera: " << U << endl;
+        
+    }
+    
+    iteration++;
+    
     return U;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
-
