@@ -392,7 +392,6 @@ int main(void) {
     
     Process *Process_Array = new Process[N];
     
-    //cout << "---- Wczytane zadania -----" << endl;
     for(int i = 1; i <= N; i++) {
         
         Process temp_process;
@@ -401,7 +400,6 @@ int main(void) {
         data >> temp_process.r >> temp_process.p >> temp_process.q;
         
         Process_Array[i] = temp_process;
-        //Process_Array[i].Print();
     }
     
     Carlier(Process_Array, N, INT_MAX);
@@ -457,9 +455,9 @@ int Schrage(Process *Process_Array, int n) {
             // zadanie e wstawiane jest na tą pozycję, chwila czasowa t zwiększana jest o czas
             // realizacji zadania, uaktualniany jest najpóźniejszy moment dostarczenia Cmax
             PI[k] = e;
-            t += PI[k].p;
+            t += e.p;
             
-            Cmax = max(Cmax, t + PI[k].q);
+            Cmax = max(Cmax, t + e.q);
             
             PI[k].c = t; // wyliczenie zmiennej potrzebnej w algorytmie Carliera
             
@@ -542,11 +540,12 @@ int SchrageWithParity(Process *Process_Array, int n) {
             // zadanie e wstawiane jest na tą pozycję, chwila czasowa t zwiększana jest o czas
             // realizacji zadania, uaktualniany jest najpóźniejszy moment dostarczenia Cmax, oraz
             // uaktualniana jest zmienna l
-            PI[k] = e;
-            l = e;
-            t += PI[k].p;
             
-            Cmax = max(Cmax, t + PI[k].q);
+            //PI[k] = e; <-- przy Carlierze tutaj nie wyznaczamy permutacji !
+            l = e;
+            t += e.p;
+            
+            Cmax = max(Cmax, t + e.q);
             
             k++;
         }
@@ -634,9 +633,9 @@ int Carlier(Process *Process_Array, int n, int UB) {
     static int U  = 0;                     // <- wartość funkcji celu
     static int LB = 0;                     // <- dolne oszacowanie
     
-    int a = 0;                      // <- numer pierwszego zadania w bloku K
-    int b = 0;                      // <- numer ostatniego zadania w bloku K
-    int c = 0;                      // <- numer zadania przeszkadzajacęgo
+    int a = -1;                      // <- numer pierwszego zadania w bloku K
+    int b = -1;                      // <- numer ostatniego zadania w bloku K
+    int c = -1;                      // <- numer zadania przeszkadzajacęgo
     
     int r_prim = INT_MAX;           // <- nowe r dla zadania c
     int p_prim = 0;                 // <- suma p
@@ -664,7 +663,7 @@ int Carlier(Process *Process_Array, int n, int UB) {
     // krok 4: jeżeli tego typu zadanie nie istnieje (alg. Shrage wygenerował rozwiązanie optymalne), następuje powrót z procedury
     if(c == -1) {
         
-        return U;
+        return UB;
     }
     
     // krok 5: wyznaczany jest najmniejszy z terminów dostępności oraz największy z terminów dostarczenia zadań stojących na pozycjach
@@ -726,12 +725,12 @@ int Carlier(Process *Process_Array, int n, int UB) {
         }
     }
     
-    cout << iteration << " " << " U: " << U << endl;
-    cout << iteration << " " << " UL: " << LB << endl;
-    cout << iteration << " " << " UB: " << UB << endl;
-    cout << iteration << " " << " a: " << a << endl;
-    cout << iteration << " " << " b: " << b << endl;
-    cout << iteration << " " << " c: " << c << endl;
+    //cout << iteration << " " << " U: " << U << endl;
+    //cout << iteration << " " << " UL: " << LB << endl;
+    //cout << iteration << " " << " UB: " << UB << endl;
+    //cout << iteration << " " << " a: " << a << endl;
+    //cout << iteration << " " << " b: " << b << endl;
+    //cout << iteration << " " << " c: " << c << endl;
     
     if(iteration == 1) {
         
@@ -747,7 +746,7 @@ int Carlier(Process *Process_Array, int n, int UB) {
     
     iteration++;
     
-    return U;
+    return UB;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
